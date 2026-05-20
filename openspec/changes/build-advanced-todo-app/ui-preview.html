@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YOUR · TODO — UI Preview</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink-900: #1A1A18;
+      --ink-700: #3D3B36;
+      --ink-500: #6B6760;
+      --ink-300: #9A9489;
+
+      --paper-50:  #FBF8F1;
+      --paper-100: #F5F0E3;
+      --paper-200: #EDE6D2;
+
+      --rule-200: #E0D8C2;
+      --rule-400: #C7BFA8;
+
+      --stamp-100: #F5E0DC;
+      --stamp-600: #B33A3A;
+      --stamp-700: #8A2A2A;
+
+      --prio-low-bg: #E8EBE0; --prio-low-ink: #5C6B4F;
+      --prio-medium-bg: #F2EAD0; --prio-medium-ink: #8C6A1F;
+      --prio-high-bg: #F4DDCD; --prio-high-ink: #A14820;
+      --prio-urgent-bg: #B33A3A; --prio-urgent-ink: #FBF8F1;
+
+      --state-pending:   #6B6760;
+      --state-progress:  #2E5F7E;
+      --state-completed: #4A6B4A;
+      --state-overdue:   #8B1F1F;
+    }
+
+    html, body { background: var(--paper-50); color: var(--ink-900); }
+    body {
+      font-family: "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+      font-feature-settings: "ss01", "cv11";
+    }
+    .font-display { font-family: "Fraunces", "Songti SC", serif; font-variation-settings: "opsz" 144; }
+    .font-display-sm { font-family: "Fraunces", "Songti SC", serif; font-variation-settings: "opsz" 14; }
+    .font-mono { font-family: "IBM Plex Mono", "SF Mono", monospace; }
+
+    /* Subtle paper texture */
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(circle at 20% 15%, rgba(199,191,168,0.15) 0%, transparent 60%),
+        radial-gradient(circle at 85% 75%, rgba(199,191,168,0.10) 0%, transparent 55%);
+    }
+    .grain {
+      position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .035; mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    }
+
+    /* Label / caption */
+    .text-label { font-size: 11px; line-height: 1.3; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+    .text-caption { font-size: 10px; line-height: 1.3; font-weight: 500; letter-spacing: .10em; text-transform: uppercase; }
+    .text-mono-12 { font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.4; }
+    .text-mono-11 { font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.3; letter-spacing: .14em; }
+
+    /* Buttons */
+    .btn-stamp {
+      background: var(--stamp-600); color: var(--paper-50);
+      transition: all 180ms cubic-bezier(.16,1,.3,1);
+      box-shadow: 0 1px 0 var(--stamp-700);
+    }
+    .btn-stamp:hover { background: var(--stamp-700); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(179,58,58,.25), 0 1px 0 var(--stamp-700); }
+    .btn-stamp:active { transform: translateY(1px); box-shadow: 0 0 0 rgba(0,0,0,0); }
+
+    .btn-ghost {
+      color: var(--ink-700);
+      transition: background 150ms, color 150ms;
+    }
+    .btn-ghost:hover { background: var(--paper-200); color: var(--ink-900); }
+
+    .btn-outline {
+      border: 1px solid var(--ink-900); color: var(--ink-900); background: transparent;
+      transition: background 150ms;
+    }
+    .btn-outline:hover { background: var(--ink-900); color: var(--paper-50); }
+
+    /* Inputs */
+    .input-archive {
+      border: 1px solid var(--ink-900); background: var(--paper-50);
+      color: var(--ink-900); padding: 0 12px; height: 44px;
+      transition: box-shadow 120ms, border-color 120ms;
+    }
+    .input-archive::placeholder { color: var(--ink-300); }
+    .input-archive:focus {
+      outline: none; border-color: var(--stamp-600);
+      box-shadow: 0 0 0 3px var(--stamp-100);
+    }
+
+    /* Stats grid - 1px internal separators */
+    .stats-grid > * + * { border-left: 1px solid var(--rule-400); }
+    @media (max-width: 639px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid > * + * { border-left: 0; }
+      .stats-grid > *:nth-child(odd):not(:first-child) { border-top: 1px solid var(--rule-400); }
+      .stats-grid > *:nth-child(even):not(:first-child):not(:nth-child(2)) { border-top: 1px solid var(--rule-400); border-left: 1px solid var(--rule-400); }
+      .stats-grid > *:nth-child(2) { border-left: 1px solid var(--rule-400); }
+    }
+
+    /* Section heading with em-dashes */
+    .sect-rule {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .sect-rule::before, .sect-rule::after {
+      content: ""; flex: 1; height: 1px; background: var(--rule-400);
+    }
+
+    /* Priority tags */
+    .tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; font-size: 10px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; }
+    .tag-low    { background: var(--prio-low-bg);    color: var(--prio-low-ink); }
+    .tag-medium { background: var(--prio-medium-bg); color: var(--prio-medium-ink); }
+    .tag-high   { background: var(--prio-high-bg);   color: var(--prio-high-ink); }
+    .tag-urgent { background: var(--prio-urgent-bg); color: var(--prio-urgent-ink); }
+    .tag-cat    { background: var(--paper-200); color: var(--ink-700); letter-spacing: .04em; text-transform: none; font-weight: 400; }
+
+    /* Todo row */
+    .todo-row { transition: background 150ms ease-out; }
+    .todo-row:hover { background: var(--paper-100); }
+    .todo-row:hover .row-actions { opacity: 1; transform: translateX(0); }
+    .row-actions { opacity: 0; transform: translateX(4px); transition: all 150ms ease-out; }
+
+    /* Custom checkbox */
+    .chkbox {
+      width: 18px; height: 18px; border: 1.5px solid var(--ink-500);
+      display: inline-grid; place-items: center;
+      transition: all 150ms cubic-bezier(.34,1.56,.64,1);
+      border-radius: 999px;
+    }
+    .chkbox-progress { background: conic-gradient(var(--state-progress) 50%, transparent 50%); border-color: var(--state-progress); }
+    .chkbox-done { background: var(--ink-900); border-color: var(--ink-900); color: var(--paper-50); }
+    .chkbox-done::after { content: "✓"; font-size: 11px; line-height: 1; font-weight: 600; }
+
+    /* Focus ring (visible, non-blue) */
+    button:focus-visible, .input-archive:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--paper-50), 0 0 0 4px var(--stamp-600);
+    }
+
+    /* Tabs */
+    .tab { padding: 8px 16px; font-size: 13px; letter-spacing: .02em; color: var(--ink-500); transition: all 150ms; border-right: 1px solid var(--rule-400); }
+    .tab:last-child { border-right: none; }
+    .tab[aria-selected="true"] { background: var(--ink-900); color: var(--paper-50); }
+    .tab:hover:not([aria-selected="true"]) { color: var(--ink-900); background: var(--paper-100); }
+
+    /* Filter badge */
+    .filter-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: var(--paper-200); font-size: 11px; color: var(--ink-700); }
+    .filter-badge::before { content: ""; width: 4px; height: 4px; background: var(--stamp-600); }
+
+    /* Distribution bar */
+    .dist-row { display: grid; grid-template-columns: 84px 1fr 32px; gap: 12px; align-items: center; }
+    .dist-bar { height: 6px; background: var(--rule-200); position: relative; }
+    .dist-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink-700); }
+
+    /* Sticky shadow on header scroll */
+    .header-stuck { border-bottom-color: var(--ink-900) !important; }
+
+    /* Subtle entry animation */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .anim-enter > * { animation: fadeUp 400ms cubic-bezier(.16,1,.3,1) both; }
+    .anim-enter > *:nth-child(1) { animation-delay: 40ms; }
+    .anim-enter > *:nth-child(2) { animation-delay: 80ms; }
+    .anim-enter > *:nth-child(3) { animation-delay: 120ms; }
+    .anim-enter > *:nth-child(4) { animation-delay: 160ms; }
+    .anim-enter > *:nth-child(5) { animation-delay: 200ms; }
+    .anim-enter > *:nth-child(6) { animation-delay: 240ms; }
+    .anim-enter > *:nth-child(7) { animation-delay: 280ms; }
+    .anim-enter > *:nth-child(8) { animation-delay: 320ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<div class="grain"></div>
+
+<!-- HEADER -->
+<header id="hdr" class="sticky top-0 z-30 h-16 border-b border-[--rule-400] bg-[--paper-50]/90 backdrop-blur supports-[backdrop-filter]:bg-[--paper-50]/70 relative">
+  <div class="mx-auto flex h-full max-w-[1080px] items-center justify-between px-8">
+    <div class="flex items-baseline gap-4">
+      <div class="font-display text-[22px] font-medium tracking-tight">
+        YOUR<span class="mx-2 text-[--stamp-600]">·</span>TODO
+      </div>
+      <span class="font-mono text-[11px] tracking-[0.2em] text-[--ink-500]">№.INDEX · 2026.05.20</span>
+    </div>
+    <nav class="flex items-center gap-1">
+      <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="导出数据">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+      </button>
+      <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="导入数据">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21V9m0 0l-4 4m4-4l4 4M5 3h14"/></svg>
+      </button>
+      <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="主题切换">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main class="mx-auto max-w-[1080px] px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+
+  <div class="anim-enter">
+
+    <!-- INTRO -->
+    <section class="mb-12">
+      <div class="text-label text-[--ink-500] mb-2">本周索引</div>
+      <h1 class="font-display text-[44px] sm:text-[56px] leading-[1.05] tracking-tight text-[--ink-900]">
+        Tasks in motion<span class="text-[--stamp-600]">.</span>
+      </h1>
+      <p class="mt-3 max-w-xl text-[--ink-500] text-[15px] leading-relaxed">
+        一本可以呼吸的、属于你自己的索引卡片簿。专注地记录，专注地完成。
+      </p>
+    </section>
+
+    <!-- STATS NUMBERS -->
+    <section class="mb-10">
+      <div class="sect-rule mb-4"><span class="text-label text-[--ink-500]">OVERVIEW · 概览</span></div>
+      <div class="stats-grid grid grid-cols-5 border border-[--rule-400] bg-[--paper-100]">
+        <div class="px-5 py-6 text-center">
+          <div class="font-display font-medium text-[48px] sm:text-[56px] leading-none text-[--ink-900] tabular-nums">42</div>
+          <div class="text-label text-[--ink-500] mt-2">TOTAL · 总数</div>
+        </div>
+        <div class="px-5 py-6 text-center">
+          <div class="font-display font-medium text-[48px] sm:text-[56px] leading-none text-[--ink-900] tabular-nums">14</div>
+          <div class="text-label text-[--ink-500] mt-2">ACTIVE · 进行</div>
+        </div>
+        <div class="px-5 py-6 text-center">
+          <div class="font-display font-medium text-[48px] sm:text-[56px] leading-none text-[--ink-900] tabular-nums">28</div>
+          <div class="text-label text-[--ink-500] mt-2">DONE · 完成</div>
+        </div>
+        <div class="px-5 py-6 text-center">
+          <div class="font-display font-medium text-[48px] sm:text-[56px] leading-none text-[--ink-900] tabular-nums">66.7<span class="text-[28px]">%</span></div>
+          <div class="text-label text-[--ink-500] mt-2">RATE · 完成率</div>
+        </div>
+        <div class="px-5 py-6 text-center bg-[--stamp-100]/40">
+          <div class="font-display font-medium text-[48px] sm:text-[56px] leading-none text-[--state-overdue] tabular-nums">3</div>
+          <div class="text-label text-[--state-overdue] mt-2">OVERDUE · 逾期</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISTRIBUTIONS -->
+    <section class="grid lg:grid-cols-2 gap-10 mb-12">
+      <div>
+        <div class="sect-rule mb-4"><span class="text-label text-[--ink-500]">BY PRIORITY · 按优先级</span></div>
+        <div class="space-y-3">
+          <div class="dist-row">
+            <span class="tag tag-urgent justify-self-start">URGENT 紧急</span>
+            <div class="dist-bar"><div class="dist-fill" style="width: 24%"></div></div>
+            <span class="font-mono text-[12px] text-[--ink-700] text-right">4</span>
+          </div>
+          <div class="dist-row">
+            <span class="tag tag-high justify-self-start">HIGH 高</span>
+            <div class="dist-bar"><div class="dist-fill" style="width: 42%"></div></div>
+            <span class="font-mono text-[12px] text-[--ink-700] text-right">7</span>
+          </div>
+          <div class="dist-row">
+            <span class="tag tag-medium justify-self-start">MED 中</span>
+            <div class="dist-bar"><div class="dist-fill" style="width: 30%"></div></div>
+            <span class="font-mono text-[12px] text-[--ink-700] text-right">5</span>
+          </div>
+          <div class="dist-row">
+            <span class="tag tag-low justify-self-start">LOW 低</span>
+            <div class="dist-bar"><div class="dist-fill" style="width: 6%"></div></div>
+            <span class="font-mono text-[12px] text-[--ink-700] text-right">1</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="sect-rule mb-4"><span class="text-label text-[--ink-500]">BY CATEGORY · 按分类</span></div>
+        <div class="space-y-3">
+          <div class="dist-row"><span class="text-[13px] text-[--ink-700]">#工作</span><div class="dist-bar"><div class="dist-fill" style="width: 70%"></div></div><span class="font-mono text-[12px] text-[--ink-700] text-right">12</span></div>
+          <div class="dist-row"><span class="text-[13px] text-[--ink-700]">#生活</span><div class="dist-bar"><div class="dist-fill" style="width: 50%"></div></div><span class="font-mono text-[12px] text-[--ink-700] text-right">8</span></div>
+          <div class="dist-row"><span class="text-[13px] text-[--ink-700]">#学习</span><div class="dist-bar"><div class="dist-fill" style="width: 32%"></div></div><span class="font-mono text-[12px] text-[--ink-700] text-right">5</span></div>
+          <div class="dist-row"><span class="text-[13px] text-[--ink-700]">#健身</span><div class="dist-bar"><div class="dist-fill" style="width: 18%"></div></div><span class="font-mono text-[12px] text-[--ink-700] text-right">3</span></div>
+          <div class="dist-row"><span class="text-[13px] text-[--ink-500]">#其他 (4)</span><div class="dist-bar"><div class="dist-fill" style="width: 16%"></div></div><span class="font-mono text-[12px] text-[--ink-700] text-right">2</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOOLBAR -->
+    <section class="mb-0 border-b border-[--rule-400] pb-4">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Search -->
+          <div class="relative flex-1 min-w-[240px] max-w-[420px]">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-[--ink-500]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="input-archive w-full pl-9 pr-12" placeholder="搜索标题或描述…" />
+            <span class="font-mono absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[--ink-300]">⌘K</span>
+          </div>
+
+          <!-- Status tabs -->
+          <div role="tablist" class="flex border border-[--rule-400] divide-x divide-[--rule-400]">
+            <button role="tab" aria-selected="true" class="tab">全部 · 42</button>
+            <button role="tab" class="tab">待办 · 14</button>
+            <button role="tab" class="tab">进行中 · 8</button>
+            <button role="tab" class="tab">已完成 · 28</button>
+          </div>
+
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn-outline h-10 px-3 text-[13px]">分类 ▾</button>
+            <button class="btn-outline h-10 px-3 text-[13px]">优先级 ▾</button>
+            <button class="btn-outline h-10 px-3 text-[13px]">↕ 最近创建</button>
+            <button class="btn-stamp h-10 px-4 text-[13px] font-medium tracking-wide">+ 新建待办</button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-mono-11 text-[--ink-500]">ACTIVE FILTERS</span>
+          <span class="filter-badge">分类：工作 <button class="text-[--ink-500] hover:text-[--stamp-600] ml-1" aria-label="移除">×</button></span>
+          <span class="filter-badge">优先级：紧急 <button class="text-[--ink-500] hover:text-[--stamp-600] ml-1" aria-label="移除">×</button></span>
+          <button class="text-[12px] text-[--ink-500] hover:text-[--stamp-600] underline underline-offset-4">清除全部筛选</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TODO LIST -->
+    <section role="list" class="divide-y divide-[--rule-200] border-b border-[--rule-400]">
+
+      <!-- Row 1 — Urgent, overdue -->
+      <article role="listitem" class="todo-row px-2 sm:px-6 py-5">
+        <div class="grid grid-cols-[56px_32px_1fr_auto] sm:grid-cols-[56px_32px_1fr_auto] items-start gap-3">
+          <div class="font-mono text-[12px] text-[--ink-300] pt-1">№.001</div>
+          <button class="chkbox mt-1" aria-label="标记完成"></button>
+          <div class="min-w-0">
+            <div class="text-[18px] font-medium leading-snug text-[--ink-900]">完成 Q3 财务报告终稿</div>
+            <div class="mt-1 text-[13px] text-[--ink-500] truncate">撰写执行摘要、附图表，并提交给 CFO 复核。</div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="tag tag-urgent">URGENT 紧急</span>
+              <span class="tag tag-cat">#工作</span>
+              <span class="font-mono text-[12px] text-[--state-overdue] font-medium ml-1">⏱ 2026.05.18 · 已逾期 2 天</span>
+            </div>
+          </div>
+          <div class="row-actions flex items-center gap-1">
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="编辑">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5l3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="删除">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6m4 4v8M11 10v8"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Row 2 — High, in progress -->
+      <article role="listitem" class="todo-row px-2 sm:px-6 py-5">
+        <div class="grid grid-cols-[56px_32px_1fr_auto] items-start gap-3">
+          <div class="font-mono text-[12px] text-[--ink-300] pt-1">№.002</div>
+          <button class="chkbox chkbox-progress mt-1" aria-label="标记完成"></button>
+          <div class="min-w-0">
+            <div class="text-[18px] font-medium leading-snug text-[--ink-900]">Code review · PR #1234 支付重构</div>
+            <div class="mt-1 text-[13px] text-[--ink-500] truncate">检查重试逻辑、补全测试覆盖、留意幂等性边界。</div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="tag tag-high">HIGH 高</span>
+              <span class="tag tag-cat">#工作</span>
+              <span class="font-mono text-[12px] text-[--ink-500]">⏱ 2026.05.21 · 明天到期</span>
+            </div>
+          </div>
+          <div class="row-actions flex items-center gap-1">
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="编辑"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5l3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6m4 4v8M11 10v8"/></svg></button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Row 3 — Medium, pending, due today -->
+      <article role="listitem" class="todo-row px-2 sm:px-6 py-5">
+        <div class="grid grid-cols-[56px_32px_1fr_auto] items-start gap-3">
+          <div class="font-mono text-[12px] text-[--ink-300] pt-1">№.003</div>
+          <button class="chkbox mt-1" aria-label="标记完成"></button>
+          <div class="min-w-0">
+            <div class="text-[18px] font-medium leading-snug text-[--ink-900]">每周复盘 · 写下本周三件得意 / 三件可改进</div>
+            <div class="mt-1 text-[13px] text-[--ink-500] truncate">用于周日晚的整理时间。</div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="tag tag-medium">MED 中</span>
+              <span class="tag tag-cat">#学习</span>
+              <span class="font-mono text-[12px] text-[--prio-high-ink] font-medium">⏱ 2026.05.20 · 今天到期</span>
+            </div>
+          </div>
+          <div class="row-actions flex items-center gap-1">
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="编辑"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5l3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6m4 4v8M11 10v8"/></svg></button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Row 4 — Low, completed -->
+      <article role="listitem" class="todo-row px-2 sm:px-6 py-5">
+        <div class="grid grid-cols-[56px_32px_1fr_auto] items-start gap-3">
+          <div class="font-mono text-[12px] text-[--ink-300] pt-1">№.004</div>
+          <button class="chkbox chkbox-done mt-1" aria-label="取消完成"></button>
+          <div class="min-w-0">
+            <div class="text-[18px] font-medium leading-snug text-[--ink-300] line-through">买菜 · 牛奶 鸡蛋 面包 橙子</div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="tag tag-low">LOW 低</span>
+              <span class="tag tag-cat">#生活</span>
+              <span class="font-mono text-[12px] text-[--state-completed]">⏱ 已完成于 2026.05.19</span>
+            </div>
+          </div>
+          <div class="row-actions flex items-center gap-1">
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="编辑"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5l3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6m4 4v8M11 10v8"/></svg></button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Row 5 — Urgent + no description, no due -->
+      <article role="listitem" class="todo-row px-2 sm:px-6 py-5">
+        <div class="grid grid-cols-[56px_32px_1fr_auto] items-start gap-3">
+          <div class="font-mono text-[12px] text-[--ink-300] pt-1">№.005</div>
+          <button class="chkbox mt-1" aria-label="标记完成"></button>
+          <div class="min-w-0">
+            <div class="text-[18px] font-medium leading-snug text-[--ink-900]">订下周一与设计师的对齐会议</div>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="tag tag-urgent">URGENT 紧急</span>
+              <span class="tag tag-cat">#工作</span>
+              <span class="font-mono text-[12px] text-[--ink-300]">⏱ 未设置截止日期</span>
+            </div>
+          </div>
+          <div class="row-actions flex items-center gap-1">
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="编辑"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5l3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-ghost h-9 w-9 grid place-items-center" aria-label="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6m4 4v8M11 10v8"/></svg></button>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- Empty state preview -->
+    <section class="mt-16 border border-dashed border-[--rule-400] py-16 px-6 text-center">
+      <div class="text-label text-[--ink-500] mb-3">EMPTY STATE · 空状态示意</div>
+      <div class="font-mono text-[12px] text-[--ink-300] mb-4">№.000</div>
+      <h2 class="font-display text-[32px] sm:text-[40px] leading-tight">你的索引还没开始<span class="text-[--stamp-600]">.</span></h2>
+      <p class="mt-2 text-[--ink-500] text-[14px]">Start your first entry.</p>
+      <button class="btn-stamp h-11 px-6 text-[14px] font-medium tracking-wide mt-6">+  新建第一条待办</button>
+    </section>
+
+    <!-- DRAWER mock -->
+    <section class="mt-16">
+      <div class="sect-rule mb-4"><span class="text-label text-[--ink-500]">DRAWER · 新建/编辑表单（示意）</span></div>
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-6 items-start">
+        <div class="bg-[--paper-100]/60 border border-[--rule-400] p-8 text-[--ink-500] text-[13px] leading-relaxed min-h-[440px]">
+          <p>左侧为列表区域。打开抽屉时，遮罩 `bg-[--ink-900]/30 backdrop-blur-sm`<br>覆盖在主内容之上，抽屉从右侧滑入。</p>
+          <p class="mt-3">手机端：抽屉改为从底部弹出，宽度全屏，高度 90vh。</p>
+        </div>
+        <aside class="bg-[--paper-50] border-l-2 border-[--ink-900] shadow-[0_12px_32px_rgba(26,26,24,0.10)] p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div class="text-mono-11 text-[--ink-500]">№ NEW · 2026.05.20</div>
+            <button class="btn-ghost h-8 w-8 grid place-items-center" aria-label="关闭">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+
+          <div class="sect-rule mb-4"><span class="text-label text-[--ink-700]">新建待办</span></div>
+
+          <label class="block">
+            <span class="text-label text-[--ink-700]">TITLE 标题 <span class="text-[--stamp-600] ml-1">*</span></span>
+            <input class="input-archive w-full mt-2" placeholder="例如：完成季度复盘…" />
+          </label>
+
+          <label class="block mt-5">
+            <span class="text-label text-[--ink-700]">DESCRIPTION 描述</span>
+            <textarea class="input-archive w-full mt-2 py-3" rows="3" placeholder="可选 · 最多 2000 字符"></textarea>
+            <div class="text-right text-[11px] text-[--ink-300] mt-1 font-mono">0 / 2000</div>
+          </label>
+
+          <div class="mt-5 grid grid-cols-2 gap-4">
+            <label class="block">
+              <span class="text-label text-[--ink-700]">DUE DATE 截止</span>
+              <input type="date" class="input-archive w-full mt-2 font-mono" />
+            </label>
+            <label class="block">
+              <span class="text-label text-[--ink-700]">CATEGORY 分类 <span class="text-[--stamp-600] ml-1">*</span></span>
+              <input class="input-archive w-full mt-2" placeholder="工作 / 生活 / …" value="工作" />
+            </label>
+          </div>
+
+          <div class="mt-5">
+            <span class="text-label text-[--ink-700]">PRIORITY 优先级</span>
+            <div role="radiogroup" class="mt-2 grid grid-cols-4 border border-[--ink-900]">
+              <button role="radio" class="py-2.5 text-[12px] font-medium tracking-wider border-r border-[--ink-900]">低</button>
+              <button role="radio" aria-checked="true" class="py-2.5 text-[12px] font-medium tracking-wider bg-[--paper-200] border-r border-[--ink-900]">中</button>
+              <button role="radio" class="py-2.5 text-[12px] font-medium tracking-wider border-r border-[--ink-900]">高</button>
+              <button role="radio" class="py-2.5 text-[12px] font-medium tracking-wider">紧急</button>
+            </div>
+          </div>
+
+          <div class="mt-8 flex items-center justify-end gap-3 pt-4 border-t border-[--rule-200]">
+            <button class="btn-ghost h-10 px-4 text-[13px]">取消</button>
+            <button class="btn-stamp h-10 px-5 text-[13px] font-medium tracking-wide">Save &amp; Stamp ⊙</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- TYPE SPECIMEN -->
+    <section class="mt-20 pb-20">
+      <div class="sect-rule mb-6"><span class="text-label text-[--ink-500]">TYPE SPECIMEN · 字体样本</span></div>
+      <div class="grid sm:grid-cols-2 gap-10">
+        <div>
+          <div class="text-label text-[--ink-500] mb-3">DISPLAY · Fraunces</div>
+          <p class="font-display text-[64px] leading-none">66.7%</p>
+          <p class="font-display text-[28px] mt-3">Index your day, gently.</p>
+          <p class="text-[12px] text-[--ink-500] mt-2 font-mono">opsz 9..144 · weight 400/500/600</p>
+        </div>
+        <div>
+          <div class="text-label text-[--ink-500] mb-3">BODY · IBM Plex Sans</div>
+          <p class="text-[20px] font-medium">完成 Q3 财务报告终稿</p>
+          <p class="text-[15px] text-[--ink-700] mt-2 leading-relaxed">撰写执行摘要、附图表，并提交给 CFO 复核。这是一段较长的描述，用来展示中文与英文混排在 Plex Sans 下的视觉效果，配合 PingFang SC 作回退。</p>
+          <p class="text-[12px] text-[--ink-500] mt-2 font-mono">IBM Plex Sans 400/500/600 · with ss01 cv11</p>
+        </div>
+      </div>
+
+      <div class="mt-12 grid sm:grid-cols-4 gap-3 border border-[--rule-400]">
+        <div class="p-4 text-center bg-[--paper-50]"><span class="tag tag-low">LOW 低</span></div>
+        <div class="p-4 text-center bg-[--paper-50]"><span class="tag tag-medium">MED 中</span></div>
+        <div class="p-4 text-center bg-[--paper-50]"><span class="tag tag-high">HIGH 高</span></div>
+        <div class="p-4 text-center bg-[--paper-50]"><span class="tag tag-urgent">URGENT 紧急</span></div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <div class="flex items-center gap-2"><span class="chkbox"></span><span class="text-[12px] text-[--ink-500]">pending</span></div>
+        <div class="flex items-center gap-2"><span class="chkbox chkbox-progress"></span><span class="text-[12px] text-[--ink-500]">in-progress</span></div>
+        <div class="flex items-center gap-2"><span class="chkbox chkbox-done"></span><span class="text-[12px] text-[--ink-500]">completed</span></div>
+      </div>
+
+      <div class="mt-12 text-[11px] text-[--ink-300] font-mono tracking-wider text-center pt-12 border-t border-[--rule-200]">
+        YOUR · TODO · UI PREVIEW · v0.1.0 · 2026.05.20<br>
+        ─── designed as an archive index, not as a list ───
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+  // Sticky header shadow on scroll
+  const hdr = document.getElementById('hdr');
+  const onScroll = () => {
+    if (window.scrollY > 80) hdr.classList.add('header-stuck');
+    else hdr.classList.remove('header-stuck');
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+</script>
+
+</body>
+</html>
