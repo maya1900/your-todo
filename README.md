@@ -4,6 +4,8 @@
 >
 > 高级待办事项 Web 应用 · React 18 + TypeScript + Vite + Tailwind + Zustand · 数据保存在浏览器 LocalStorage，永不上传。
 
+![主页](docs/screenshots/Jietu20260520-171701@2x.png)
+
 ## 功能
 
 - ✓ 多维度待办：标题 / 描述 / 截止日期 / 优先级（低 · 中 · 高 · 紧急）/ 分类
